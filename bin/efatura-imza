@@ -3,6 +3,7 @@
 # Kullanım: efatura-imza {start|stop|restart|status|log|run}
 set -euo pipefail
 
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 BASE="${XDG_DATA_HOME:-$HOME/.local/share}"
 GIB_DIR="$BASE/efatura-ws"
 JAVA_BIN="$(ls -d "$BASE"/java8/*/bin/java 2>/dev/null | head -1 || true)"
@@ -31,7 +32,7 @@ case "${1:-status}" in
       echo "Başlatılamadı, log: $LOG" >&2; exit 1
     fi ;;
   stop)     [ -n "$(pid)" ] && kill "$(pid)" && echo "Durduruldu." || echo "Çalışmıyor." ;;
-  restart)  "$0" stop || true; sleep 2; "$0" start ;;
+  restart)  "$SELF" stop || true; sleep 2; "$SELF" start ;;
   status)   if [ -n "$(pid)" ]; then echo "Çalışıyor (pid $(pid)), https://localhost:$PORT"; else echo "Çalışmıyor."; fi ;;
   log)      tail -n 80 "$LOG"; echo; echo "Ayrıntılı log: /tmp/EFaturaWebSocketLog/" ;;
   *)        echo "Kullanım: $0 {start|stop|restart|status|log|run}" >&2; exit 2 ;;
