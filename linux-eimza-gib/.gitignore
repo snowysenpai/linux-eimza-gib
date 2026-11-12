@@ -1,0 +1,8 @@
+# Üçüncü taraf ikili dosyalar ve kişisel veri repoya girmesin
+*.jar
+*.deb
+*.so
+*.jnlp
+*.log
+*.tar.gz
+E-imzatr_*

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# GİB imza aracını (yerel websocket, https://localhost:8543) başlatır/durdurur.
+# Kullanım: efatura-imza {start|stop|restart|status|log|run}
+set -euo pipefail
+
+BASE="${XDG_DATA_HOME:-$HOME/.local/share}"
+GIB_DIR="$BASE/efatura-ws"
+JAVA_BIN="$(ls -d "$BASE"/java8/*/bin/java 2>/dev/null | head -1 || true)"
+LOG="$GIB_DIR/run.log"
+PORT=8543
+
+[ -x "$JAVA_BIN" ] || { echo "Java 8 bulunamadı; install.sh'ı çalıştır." >&2; exit 1; }
+[ -f "$GIB_DIR/main-class" ] || { echo "İmza aracı kurulu değil; install.sh'ı çalıştır." >&2; exit 1; }
+
+MAIN="$(cat "$GIB_DIR/main-class")"
+cd "$GIB_DIR"
+CP="EfaturaWebSocket.jar:$(ls lib/*.jar | tr '\n' ':')"
+JAVA_ARGS=(-Dfile.encoding=UTF-8 -Xmx1g -cp "$CP" "$MAIN")
+
+pid() { pgrep -f "java.*$MAIN" | head -1 || true; }
+
+case "${1:-status}" in
+  run)      exec "$JAVA_BIN" "${JAVA_ARGS[@]}" ;;   # systemd için (önde çalışır)
+  start)
+    if [ -n "$(pid)" ]; then echo "Zaten çalışıyor (pid $(pid))."; exit 0; fi
+    setsid nohup "$JAVA_BIN" "${JAVA_ARGS[@]}" >"$LOG" 2>&1 </dev/null &
+    sleep 5
+    if ss -ltn 2>/dev/null | grep -q ":$PORT "; then
+      echo "Çalışıyor: https://localhost:$PORT"
+    else
+      echo "Başlatılamadı, log: $LOG" >&2; exit 1
+    fi ;;
+  stop)     [ -n "$(pid)" ] && kill "$(pid)" && echo "Durduruldu." || echo "Çalışmıyor." ;;
+  restart)  "$0" stop || true; sleep 2; "$0" start ;;
+  status)   if [ -n "$(pid)" ]; then echo "Çalışıyor (pid $(pid)), https://localhost:$PORT"; else echo "Çalışmıyor."; fi ;;
+  log)      tail -n 80 "$LOG"; echo; echo "Ayrıntılı log: /tmp/EFaturaWebSocketLog/" ;;
+  *)        echo "Kullanım: $0 {start|stop|restart|status|log|run}" >&2; exit 2 ;;
+esac

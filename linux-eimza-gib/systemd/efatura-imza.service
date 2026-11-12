@@ -1,0 +1,12 @@
+[Unit]
+Description=GİB e-Fatura imza aracı (yerel websocket, localhost:8543)
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/efatura-imza run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
